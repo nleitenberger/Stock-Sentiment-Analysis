@@ -1,0 +1,12 @@
+# Python Caches
+__pycache__/
+*py[cod]
+
+# Conda / Venvs
+.env
+.venv/
+*.Conda
+*.egg-info/
+
+# Secrets
+.env

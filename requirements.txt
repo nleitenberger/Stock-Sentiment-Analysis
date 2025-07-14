@@ -1,0 +1,30 @@
+# Core Dependencies
+
+pandas
+numpy
+
+# Visualization
+
+matplotlib
+seaborn
+altair
+
+# NewsAPI
+
+newsapi-python
+python-dotenv
+
+# VADER
+
+nltk
+vaderSentiment
+
+# Streamlit
+
+Streamlit
+
+# Miscellaneous
+
+jupyter
+ipykernel
+black
