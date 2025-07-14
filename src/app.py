@@ -4,7 +4,7 @@ import altair as alt
 import datetime as dt
 
 from sentiment import vader_score
-from newsapi_collect import fetch_company_news
+from newsapi_collect import fetch_news_sliced
 
 st.set_page_config(page_title="Stock News VADER Sentiment", layout="wide")
 st.title("Vader Sentiment on Stock Headlines")
@@ -26,7 +26,7 @@ if run:
     data_frames = []
     prog = st.progress(0)
     for i, tkr in enumerate(symbols, start=1):
-        df_tkr = fetch_company_news(tkr, days_back=days)
+        df_tkr = fetch_news_sliced(tkr, days_back=days)
         df_tkr["sentiment"] = df_tkr["title"].apply(vader_score)
         data_frames.append(df_tkr)
         prog.progress(i / len(symbols))

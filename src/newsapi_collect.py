@@ -1,4 +1,8 @@
-import os, datetime as dt, pandas as pd
+import time
+import os
+import datetime as dt
+from datetime import date, timedelta
+import pandas as pd
 from dotenv import load_dotenv
 from newsapi import NewsApiClient
 
@@ -9,28 +13,46 @@ if not API_KEY:
 
 newsapi = NewsApiClient(api_key=API_KEY)
 
-def fetch_company_news(ticker: str, days_back: int = 30) -> pd.DataFrame:
-    """Return a DataFrame of Past N Days of Headlines for 'ticker'."""
-    start = (dt.date.today() - dt.timedelta(days=days_back)).isoformat()
-    out = newsapi.get_everything(
-        q=ticker,
-        language="en",
-        sort_by="publishedAt",
-        from_param=start,
-        page_size=100,
-    )
+# Attempt to Fetch Slices to Avoid Article Truncation
+
+def fetch_news_sliced(ticker: str, days_back: int = 30, slice_len: int = 3) -> pd.DataFrame:
+    end = date.today()
+    start = end - timedelta(days=days_back)
+    rows = []
     
-    rows = [
-        {
-            "ticker": ticker.upper(),
-            "published": a["publishedAt"],
-            "title": a["title"] or "",
-            "source": a["source"]["name"],
-            "url": a["url"],
-        }
-        for a in out["articles"]
-    ]
-    return pd.DataFrame(rows)
+    slice_to = end
+    while slice_to > start:
+        slice_from = slice_to - timedelta(days=slice_len)
+        if slice_from < start:
+            slice_from = start
+            
+        # For NewsAPI Request
+        resp = newsapi.get_everything(
+            q = ticker,
+            language = "en",
+            sort_by = "publishedAt",
+            from_param = slice_from.isoformat(),
+            to = slice_to.isoformat(),
+            page_size = 100,
+            page = 1,
+        )
+        
+        for a in resp["articles"]:
+            rows.append({
+                "ticker": ticker.upper(),
+                "published": a["publishedAt"],
+                "title": a["title"] or "",
+                "source": a["source"]["name"],
+                "url": a["url"],
+            })
+        
+        slice_to = slice_from - timedelta(days = 1)
+        time.sleep(0.5)
+        
+    # Deduplicate by URL to prevent duplicate occurrences in slices
+    
+    df = pd.DataFrame(rows).drop_duplicates(subset="url")
+    return df
 
 def main() -> None:
     tickers = ["AAPL", "MSFT", "NVDA"]

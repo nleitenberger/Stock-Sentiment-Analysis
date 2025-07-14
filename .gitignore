@@ -10,3 +10,6 @@ __pycache__/
 
 # Secrets
 .env
+
+# Commit Template
+!.env.example
