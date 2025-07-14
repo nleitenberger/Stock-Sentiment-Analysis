@@ -1,7 +1,9 @@
 import streamlit as st
 import pandas as pd
-import altair as alt
+import matplotlib.pyplot as plt 
+import numpy as np
 import datetime as dt
+import io, csv
 
 from sentiment import vader_score
 from newsapi_collect import fetch_news_sliced
@@ -42,36 +44,76 @@ if run:
     st.success(f"{len(df):,} headlines loaded.")
     st.dataframe(df.head(15), use_container_width=True)
     
-    # Line Chart for Daily Average
+    # Updated Chart (Now with Matplotlib.pyplot) for Daily Average
     
     df["date"] = pd.to_datetime(df["published"]).dt.date
     
     daily = (
-        df.groupby(["ticker", "date"], as_index=False)
-        .sentiment.mean()
-        .rename(columns={"sentiment": "avg_sent"})
+        df.groupby(["date", "ticker"], as_indexx=False)["sentiment"]
+        .mean()
     )
     
-    chart = (
-        alt.Chart(daily)
-        .mark_line(point=True)
-        .encode(
-            x=alt.X("date:T", title="Date"),
-            y=alt.Y("avg_sent:Q", title="Average VADER compound"),
-            color="ticker:N",
-            tooltip=[
-                "ticker:N",
-                "date:T",
-                alt.Tooltip("avg_sent:Q", format=".2f"),
-            ],
-        )
-        .properties(height=400)
-    )
-    st.altair_chart(chart, use_container_width=True)
+    # Pivot for Matrix
     
-    # Download Link
-    csv = df.to_csv(index=False).encode()
-    st.download_button("Download Scored CSV", csv, "news_scored_vader.csv", "text/csv")
+    pivot = (
+        daily.pivot(index="date", columns="ticker", values="sentiment")
+        .sort_index()
+        .fillna(0)
+    )
+    
+    dates = pivot.index
+    tickers = pivot.columns
+    n_tkr = len(tickers)
+    
+    # Grouped Bars
+    x = np.arrange(len(dates))
+    bar_w = 0.8 / n_tkr # Cluster Width --> 0.8
+    
+    fig, ax = plt.subplots(figsize(14, 6))
+    
+    for i, tkr in enumerate(tickers):
+        offset = (i - (n_tkr - 1) / 2) * bar_w # Centered Clusters
+        ax.bar(x + offset, pivot[tkr], width=bar_w, label=tkr)
+        
+    # Design
+    
+    ax.axhline(0, color="black", lw=0.7)
+    ax.set_ylabel("Average VADER Compound")
+    ax.set_xlabel("Date")
+    ax.set_title("Daily VADER Sentiment (Grouped Bar Chart)")
+    ax.set_xticks(x)
+    ax.set_xticklabels([d.strftime("%Y-%m-%d") for d in dates], rotation = 45, ha = "right")
+    ax.legend(title="Ticker")
+    fig.tight_layout()
+    
+    # Display via Streamlit
+    
+    st.pyplot(fig)
+    
+    
+    # -- Download Link --
+    
+    # Sort by Ticker & Date(s)
+    
+    df_sorted = df.sort_values(["ticker", "published"])
+    
+    # Implement Blank Line into CSV Between Altered Ticker Blocks
+    
+    buffer = io.StringIO()
+    writer = csv.writer(buffer)
+    writer.writerow(df_sorted.columns)
+    
+    current = None
+    for row in df_sorted.itertuples(index=False): 
+        if row.ticker != current and current is not None:
+            writer.writerow([])
+        writer.writerow(row)
+        current = row.ticker
+        
+    csv_bytes = buffer.getvalue().encode()
+    
+    
+    st.download_button("Download Grouped CSV", csv_bytes, "news_scored_grouped.csv", "text/csv")
 
 else:
     st.info("<-- Enter Tickers & Click 'Fetch & Analyze'.")
