@@ -6,7 +6,7 @@ import datetime as dt
 import io, csv
 
 from sentiment import vader_score
-from newsapi_collect import fetch_news_sliced
+from google_news import fetch_google_news as fetch_news_sliced
 
 st.set_page_config(page_title="Stock News VADER Sentiment", layout="wide")
 st.title("Vader Sentiment on Stock Headlines")
@@ -49,7 +49,7 @@ if run:
     df["date"] = pd.to_datetime(df["published"]).dt.date
     
     daily = (
-        df.groupby(["date", "ticker"], as_indexx=False)["sentiment"]
+        df.groupby(["date", "ticker"], as_index=False)["sentiment"]
         .mean()
     )
     
@@ -61,15 +61,23 @@ if run:
         .fillna(0)
     )
     
+    st.text(f"DEBUG> After Scraping: {len(df_tkr)} rows")
+    df_tkr = df_tkr[df_tkr["sentiment"] != 0]
+    st.text(f"DEBUG> After Filter: {len(df_tkr)} rows")
+    
     dates = pivot.index
     tickers = pivot.columns
     n_tkr = len(tickers)
     
+    if n_tkr == 0:
+        st.warning("Nothing to Plot - No Headlines After Filtration.")
+        st.stop()
+    
     # Grouped Bars
-    x = np.arrange(len(dates))
+    x = np.arange(len(dates))
     bar_w = 0.8 / n_tkr # Cluster Width --> 0.8
     
-    fig, ax = plt.subplots(figsize(14, 6))
+    fig, ax = plt.subplots(figsize=(14, 6))
     
     for i, tkr in enumerate(tickers):
         offset = (i - (n_tkr - 1) / 2) * bar_w # Centered Clusters

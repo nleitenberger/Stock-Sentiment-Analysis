@@ -2,6 +2,8 @@
 
 pandas
 numpy
+html5lib
+feedparser
 
 # Visualization
 
