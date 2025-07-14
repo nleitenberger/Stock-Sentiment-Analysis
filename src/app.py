@@ -6,7 +6,7 @@ import datetime as dt
 import io, csv
 
 from sentiment import vader_score
-from google_news import fetch_google_news as fetch_news_sliced
+from google_news_sliced import fetch_google_news_sliced as fetch_news_sliced
 
 st.set_page_config(page_title="Stock News VADER Sentiment", layout="wide")
 st.title("Vader Sentiment on Stock Headlines")
