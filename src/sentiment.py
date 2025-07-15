@@ -15,6 +15,16 @@ def vader_score(text: str) -> float:
     """Compound Score [-1,1]"""
     return sia.polarity_scores(text)["compound"]
 
+# Label of Vader Results
+
+def vader_label (compound: float) -> str: 
+    # Positive
+    if compound >= 0.05: 
+        return "positive"
+    if compound <= -0.05:
+        return "negative"
+    return "neutral"
+
 def main() -> None:
     df = pd.read_csv("data/news_raw.csv")
     df["sentiment_vader"] = df["title"].apply(vader_score)

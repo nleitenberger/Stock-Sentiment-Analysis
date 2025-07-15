@@ -6,6 +6,7 @@ import datetime as dt
 import io, csv
 
 from sentiment import vader_score
+from sentiment import vader_label
 from google_news_sliced import fetch_google_news_sliced as fetch_news_sliced
 
 st.set_page_config(page_title="Stock News VADER Sentiment", layout="wide")
@@ -17,7 +18,8 @@ with st.sidebar:
     st.header("Query")
     tickers = st.text_input("Tickers (comma-separated)", "AAPL,MSFT,NVDA")
     days = st.slider("Days Back", 1, 60, 30)
-    run = st.button("Fetch & Analyze")
+    drop_neutral = st.checkbox("Exclude Neutral (Sentiment = 0)", value = False)
+    run = st.button(" Fetch & Analyze ")
     
 if run:
     symbols = [t.strip().upper() for t in tickers.split(",") if t.strip()]
@@ -39,7 +41,17 @@ if run:
         st.stop()
         
     df = pd.concat(data_frames, ignore_index=True)
+    
+    # Implementation of Checkbox to Remove Neutral Sentiment Values
+    
+    if drop_neutral:
+        df = df[df["sentiment"] != 0].reset_index(drop=True)
+        
     df["published"] = pd.to_datetime(df["published"])
+    
+    # Vader Labeling
+    df["sentiment"] = df["title"].apply(vader_score)
+    df["sent_label"] = df["sentiment"].apply(vader_label)
     
     st.success(f"{len(df):,} headlines loaded.")
     st.dataframe(df.head(15), use_container_width=True)
@@ -104,6 +116,10 @@ if run:
     # Sort by Ticker & Date(s)
     
     df_sorted = df.sort_values(["ticker", "published"])
+    df_sorted = df_sorted.rename(columns={
+        "sentiment": "compound", 
+        "sent_label": "sentiment_class",
+    })
     
     # Implement Blank Line into CSV Between Altered Ticker Blocks
     
@@ -120,6 +136,7 @@ if run:
         
     csv_bytes = buffer.getvalue().encode()
     
+    suffix = "_no_neutrals" if drop_neutral else ""
     
     st.download_button("Download Grouped CSV", csv_bytes, "news_scored_grouped.csv", "text/csv")
 
