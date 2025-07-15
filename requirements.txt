@@ -4,22 +4,21 @@ pandas
 numpy
 html5lib
 feedparser
+lxml
 
 # Visualization
 
 matplotlib
 seaborn
+yfinance
 altair
-
-# NewsAPI
-
-newsapi-python
-python-dotenv
 
 # VADER
 
 nltk
 vaderSentiment
+beautifulsoup4
+requests
 
 # Streamlit
 
