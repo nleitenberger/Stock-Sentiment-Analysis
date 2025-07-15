@@ -1,24 +1,37 @@
 @echo off
 REM --
-REM install.bat - assuming conda present
+REM install.bat - setup & pip
 REM --
-set "ENV_NAME=stock_sentiment"
+setlocal EnableDelayedExpansion
+cd /d "%~dp0"
 
-call conda env list | findstr /C: "%ENV_NAME%" >nul
-if %errorlevel% neq 0 (
-    echo [+] Creating Conda Environment %ENV_NAME% ...
-    conda create -n %ENV_NAME% python=3.12 -y
+:: Verify Python 3.12+ on PATH
+
+where python >NUL 2>&1 || (
+    echo [ERROR] Python is not on PATH. Install Python 3.12
+    pause & exit /b 1
 )
 
-call conda activate %ENV_NAME%
-echo [+] Installing Requirements ...
-pip install -r requirements.txt --quiet
+:: Create Virtual Environment if Missing
+if not exist ".venv\" (
+    echo [+] Creating Virtual Environment .venv...
+    python -m venv .venv
+)
 
-echo [+] Downloading VADER ...
-python - <<PY 2>nul
+:: Activate Virtual Environment
+call .venv\Scripts\activate
+
+:: Upgrade Pip & Install Dependencies
+python - <<PY 2>NUL
 import nltk, os
 nltk.download("vader_lexicon", quiet=True)
 PY
 
-echo [+] Setup Complete. Use Run.bat
+echo[+] Setup Complete. Run "Run.bat" File to Launch.
 pause
+exit /b 0
+
+:pipfail
+echo [ERROR] pip install failed - scroll up for details. 
+pause
+exit /b 1
